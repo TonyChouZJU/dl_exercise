@@ -78,8 +78,8 @@ def optimizer(theta_init, X, y, iters=200):
 		theta_grad = gradient(theta, X_i, y_i)
 		theta = theta -  c * theta_grad.transpose()
                 loss_history.append(loss)
-                logging.info("iter: {:8d}\n\t\t\tloss: {:6f}".format(i, loss))
-                logging.info( '\t\t\tRMS error: {error}'.format( error=np.sqrt(np.mean( (linear_regression(theta, X_i, y_i) - y_i) ** 2))) )
+                #logging.info("iter: {:8d}\n\t\t\tloss: {:6f}".format(i, loss))
+                #logging.info( '\t\t\tRMS error: {error}'.format( error=np.sqrt(np.mean( (linear_regression(theta, X_i, y_i) - y_i) ** 2))) )
 	return theta, loss_history
 
 def load_data(input_file='housing.data'):
@@ -130,11 +130,11 @@ def gradient_descend(train_x, train_y, test_x, test_y, theta_init, sv_name,  ite
     			
     pred_prices = linear_regression(theta_final, test_x, test_y)
 
-    show_J_history(J_history)
+    #show_J_history(J_history)
     show_results(test_y, pred_prices, sv_name)
     return theta_final
     
-def scipy_optimize(train_x, train_y, test_x, test_y,  theta_init, sv_name, iters=200):
+def scipy_optimize(train_x, train_y, test_x, test_y,  theta_init, sv_name, iters=200, _method='bfgs'):
     J_history = []
     
     t0 = time.time()
@@ -142,7 +142,7 @@ def scipy_optimize(train_x, train_y, test_x, test_y,  theta_init, sv_name, iters
         fun=cost_function,
         x0=theta_init,
         args=(train_x, train_y),
-        method='bfgs',
+        method=_method,
         jac=gradient,
         options={'maxiter': iters, 'disp': True},
         callback=lambda x: J_history.append(cost_function(x, train_x, train_y)),
@@ -152,7 +152,7 @@ def scipy_optimize(train_x, train_y, test_x, test_y,  theta_init, sv_name, iters
     optimal_theta = res.x
 
     pred_prices = linear_regression(optimal_theta, test_x, test_y)
-    show_J_history(J_history)
+    #show_J_history(J_history)
     show_results(test_y, pred_prices, sv_name)
     return optimal_theta
 
@@ -173,15 +173,19 @@ if __name__ == '__main__':
     np.random.shuffle(dataset)
     
     
-    train_x, train_y, test_x, test_y = split_data(dataset)
+    orig_train_x, train_y, orig_test_x, test_y = split_data(dataset)
     
-    normlizer = featureNormlize(train_x,'stand')
+    normlizer = featureNormlize(orig_train_x,'stand')
 
-    train_x = normlizer.transform(train_x)
+    train_x = normlizer.transform(orig_train_x)
     train_x = np.hstack([np.ones((train_x.shape[0], 1)), train_x])
+
+    orig_train_x = np.hstack([np.ones((orig_train_x.shape[0], 1)), orig_train_x])
     
-    test_x = normlizer.transform(test_x)
+    test_x = normlizer.transform(orig_test_x)
     test_x = np.hstack([np.ones((test_x.shape[0], 1)), test_x])
+
+    orig_test_x = np.hstack([np.ones((orig_test_x.shape[0], 1)), orig_test_x])
     
     theta_init = np.random.rand(train_x.shape[1])
 
@@ -189,12 +193,22 @@ if __name__ == '__main__':
     #hand write gradient descend
     optimal_theta_1 = gradient_descend(train_x, train_y, test_x, test_y, theta_init, sv_name='./results/gt_vs_pred_1.png', iters=200)
     optimal_theta_2 = scipy_optimize(train_x, train_y, test_x, test_y, theta_init, sv_name='./results/gt_vs_pred_2.png',iters=200)
-
     optimal_theta_3 = normal_equation(train_x, train_y, test_x, test_y, sv_name='./results/gt_vs_pred_3.png')
+
     logging.info('Loss 1:{}'.format(cost_function(optimal_theta_1, train_x, train_y)))
     logging.info('Loss 2:{}'.format(cost_function(optimal_theta_2, train_x, train_y)))
     logging.info('Loss 3:{}'.format(cost_function(optimal_theta_3, train_x, train_y)))
+
+    optimal_theta_4 = gradient_descend(orig_train_x, train_y, orig_test_x, test_y, theta_init, sv_name='./results/gt_vs_pred_4.png', iters=200)
+    optimal_theta_5 = scipy_optimize(orig_train_x, train_y, orig_test_x, test_y, theta_init, sv_name='./results/gt_vs_pred_5.png',iters=200)
+    optimal_theta_6 = normal_equation(orig_train_x, train_y, orig_test_x, test_y, sv_name='./results/gt_vs_pred_6.png')
+
+    logging.info('Loss 4:{}'.format(cost_function(optimal_theta_4, orig_train_x, train_y)))
+    logging.info('Loss 5:{}'.format(cost_function(optimal_theta_5, orig_train_x, train_y)))
+    logging.info('Loss 6:{}'.format(cost_function(optimal_theta_6, orig_train_x, train_y)))
     
+    optimal_theta_7 = scipy_optimize(orig_train_x, train_y, orig_test_x, test_y, theta_init, sv_name='./results/gt_vs_pred_7.png',iters=200, _method='Powell')
+    logging.info('Loss 7:{}'.format(cost_function(optimal_theta_7, orig_train_x, train_y)))
     ###################
     ## Error and Plots ##
     ###################
