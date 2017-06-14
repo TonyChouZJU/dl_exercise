@@ -143,7 +143,8 @@ if __name__=='__main__':
     digits = datasets.load_digits(n_class=2)
 
     orig_train_x, train_y, orig_test_x, test_y = split_digits_data(digits)
-    theta_init = np.random.rand(orig_train_x.shape[1])
+    #theta_init = np.random.rand(orig_train_x.shape[1])
+    theta_init = np.zeros(orig_train_x.shape[1]) + 0.0001
     print orig_test_x, test_y
     optimal_theta_1 = gradient_descend(orig_train_x, train_y, orig_test_x, test_y, theta_init, sv_name='./results/logistic_gt_vs_pred_1.png', iters=50)
 
