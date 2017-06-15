@@ -9,7 +9,9 @@ import sys
 import logging
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
-class featureNormlize():
+#class featureNormlize():
+#This could behave badly if the individual feature do not more or less like standard normally distributed data
+class featureStandlizer():
     def __init__(self, X, method='stand'):
         self._method = method
         self._scaler = self.initScaler(X)
@@ -26,9 +28,11 @@ class featureNormlize():
         elif self._method=='maxabs':
             return preprocessing.MaxAbsScaler()
         elif self._method=='l2':
-            return preprocessing.Normalizer.fit(X, norm='l2')
+            return preprocessing.Normalizer(norm='l2')
         elif self._method=='l1':
-            return preprocessing.Normalizer.fit(X, norm='l1')
+            return preprocessing.Normalizer(norm='l1')
+        elif self._method=='max':
+            return preprocessing.Normalizer(norm='max')
         else:
             return None
     def transform(self, x):
@@ -172,8 +176,8 @@ def normal_equation(train_x, train_y, test_x, test_y, sv_name):
 
 def linear_regression_sklearn(train_x, train_y, test_x, test_y, theta_init,  sv_name):
     #as the data is not centered, we can use two method to get the intercept
-    #a)fit_intercpt = True, we will have an extra paramaters intercept_, 
-    #b)add 1 into the origin data, and set fit_inter
+    #a)fit_intercpt = True, we can have an extra paramaters intercept_, 
+    #b)add 1 into the origin data, and set fit_intercept=False
     #reg = linear_model.LinearRegression(fit_intercept=False)
     reg = linear_model.LinearRegression(fit_intercept=True)
     reg.fit(train_x, train_y)
@@ -202,56 +206,44 @@ def rms_error(train_x, train_y, test_x, test_y, optimal_theta):
         logging.info('RMS {dataset} error: {error}'.format(dataset=df,
                                                     error=np.sqrt(np.mean((predicted_prices - actual_prices) ** 2))         )
         )
+    logging.info('Train Loss :{}'.format(cost_function(optimal_theta, train_x, train_y)))
 
 if __name__ == '__main__':
-    dataset = load_data(input_file='housing.data')
-    #print 'dataset:', dataset
-    np.random.shuffle(dataset)
+    #dataset = load_data(input_file='housing.data')
+    #np.random.shuffle(dataset) 
+    #np.save('./dataset.npy',dataset)
+    dataset = np.load('./dataset.npy')
     
     
     orig_train_x, train_y, orig_test_x, test_y = split_data(dataset)
     
-    normlizer = featureNormlize(orig_train_x,'stand')
+    standlizer = featureStandlizer(orig_train_x,'stand')
 
-    train_x = normlizer.transform(orig_train_x)
+    train_x = standlizer.transform(orig_train_x)
     train_x = np.hstack([np.ones((train_x.shape[0], 1)), train_x])
 
-    #orig_train_x = np.hstack([np.ones((orig_train_x.shape[0], 1)), orig_train_x])
+    orig_train_x = np.hstack([np.ones((orig_train_x.shape[0], 1)), orig_train_x])
     
-    test_x = normlizer.transform(orig_test_x)
+    test_x = standlizer.transform(orig_test_x)
     test_x = np.hstack([np.ones((test_x.shape[0], 1)), test_x])
 
-    #orig_test_x = np.hstack([np.ones((orig_test_x.shape[0], 1)), orig_test_x])
+    orig_test_x = np.hstack([np.ones((orig_test_x.shape[0], 1)), orig_test_x])
     
     theta_init = np.random.rand(train_x.shape[1])
 
     
     #hand write gradient descend
-    #optimal_theta_1 = gradient_descend(train_x, train_y, test_x, test_y, theta_init, sv_name='./results/gt_vs_pred_1.png', iters=200)
-    #optimal_theta_2 = scipy_optimize(train_x, train_y, test_x, test_y, theta_init, sv_name='./results/gt_vs_pred_2.png',iters=200)
-    #optimal_theta_3 = normal_equation(train_x, train_y, test_x, test_y, sv_name='./results/gt_vs_pred_3.png')
-
-    #logging.info('Loss 1:{}'.format(cost_function(optimal_theta_1, train_x, train_y)))
-    #logging.info('Loss 2:{}'.format(cost_function(optimal_theta_2, train_x, train_y)))
-    #logging.info('Loss 3:{}'.format(cost_function(optimal_theta_3, train_x, train_y)))
+    #optimal_theta_1 = gradient_descend(train_x, train_y, test_x, test_y, theta_init, sv_name='./results/gd_max_normalized.png', iters=1000)
+    #optimal_theta_2 = scipy_optimize(train_x, train_y, test_x, test_y, theta_init, sv_name='./results/bfgs_max_normalized.png',iters=200)
+    optimal_theta_3 = normal_equation(train_x, train_y, test_x, test_y, sv_name='./results/normequ_stand_normalized.png')
 
     #optimal_theta_4 = gradient_descend(orig_train_x, train_y, orig_test_x, test_y, theta_init, sv_name='./results/gt_vs_pred_4.png', iters=200)
     #optimal_theta_5 = scipy_optimize(orig_train_x, train_y, orig_test_x, test_y, theta_init, sv_name='./results/gt_vs_pred_5.png',iters=200)
     #optimal_theta_6 = normal_equation(orig_train_x, train_y, orig_test_x, test_y, sv_name='./results/gt_vs_pred_6.png')
 
-    #logging.info('Loss 4:{}'.format(cost_function(optimal_theta_4, orig_train_x, train_y)))
-    #logging.info('Loss 5:{}'.format(cost_function(optimal_theta_5, orig_train_x, train_y)))
-    #logging.info('Loss 6:{}'.format(cost_function(optimal_theta_6, orig_train_x, train_y)))
-    #
     #optimal_theta_7 = scipy_optimize(orig_train_x, train_y, orig_test_x, test_y, theta_init, sv_name='./results/gt_vs_pred_7.png',iters=200, _method='Powell')
-    #logging.info('Loss 7:{}'.format(cost_function(optimal_theta_7, orig_train_x, train_y)))
 
-    optimal_theta_8 = linear_regression_sklearn(orig_train_x, train_y, orig_test_x, test_y, theta_init, sv_name='./results/sklearn_linear_gt_vs_pred_8.png')
-    logging.info('Loss 8:{}'.format(cost_function(optimal_theta_8, orig_train_x, train_y)))
+    #optimal_theta_8 = linear_regression_sklearn(orig_train_x, train_y, orig_test_x, test_y, theta_init, sv_name='./results/sklearn_linear_gt_vs_pred_8.png')
 
     #optimal_theta_9 = linear_regression_sklearn(train_x, train_y, test_x, test_y, theta_init, sv_name='./results/sklearn_linear_normlized_gt_vs_pred_9.png')
-    #logging.info('Loss 9:{}'.format(cost_function(optimal_theta_9, train_x, train_y)))
-    ###################
-    ## Error and Plots ##
-    ###################
     

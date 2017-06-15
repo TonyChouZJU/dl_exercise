@@ -105,6 +105,10 @@ def show_results(test_y, y_preds, sv_name):
 #    plt.show()
     plt.savefig(sv_name)
 
+def logistic_regression_sklearn(train_x, train_y, test_x, test_y, theta_init,  sv_name):
+    
+     
+
 def gradient_descend(train_x, train_y, test_x, test_y, theta_init, sv_name,  iters=200, converge_change=-1e-60):
     theta_final, J_history = optimizer(theta_init, train_x, train_y, iters, converge_change)
     			
