@@ -5,7 +5,7 @@ import numpy as np
 import scipy.optimize
 import time
 
-from sklearn import preprocessing
+from sklearn import preprocessing, linear_model
 import scipy.special
 
 import sys
@@ -105,7 +105,21 @@ def show_results(test_y, y_preds, sv_name):
 #    plt.show()
     plt.savefig(sv_name)
 
-def logistic_regression_sklearn(train_x, train_y, test_x, test_y, theta_init,  sv_name):
+def logistic_regression_sklearn(train_x, train_y, test_x, test_y, theta_init,  sv_name, iters=200):
+    reg = linear_model.LogisticRegression(penalty='l2', fit_intercept=False)
+    reg.fit(train_x, train_y)
+
+    theta = reg.coef_.flatten()
+    #theta = np.hstack([reg.intercept_, reg.coef_])
+    #train_x = np.hstack([np.ones((train_x.shape[0], 1)), train_x])
+    #test_x = np.hstack([np.ones((test_x.shape[0], 1)), test_x])
+
+    logging.info('reg coef:{}, shape;{}, intercept_:{}'.format(reg.coef_, reg.coef_.shape, reg.intercept_))
+
+    pred_y = logistic_regression(theta, test_x, test_y)
+    show_results(test_y, pred_y, sv_name)
+    #analysis_error(train_x, train_y, test_x, test_y, theta)
+    return theta
     
      
 
@@ -150,7 +164,8 @@ if __name__=='__main__':
     #theta_init = np.random.rand(orig_train_x.shape[1])
     theta_init = np.zeros(orig_train_x.shape[1]) + 0.0001
     print orig_test_x, test_y
-    optimal_theta_1 = gradient_descend(orig_train_x, train_y, orig_test_x, test_y, theta_init, sv_name='./results/logistic_gt_vs_pred_1.png', iters=50)
+    #optimal_theta_1 = gradient_descend(orig_train_x, train_y, orig_test_x, test_y, theta_init, sv_name='./results/gd_logistic.png', iters=50)
+    optimal_theta_1 = logistic_regression_sklearn(orig_train_x, train_y, orig_test_x, test_y, theta_init, sv_name='./results/sk_logistic_regression_l2', iters=50)
 
     prob_y = logistic_regression(optimal_theta_1, orig_test_x, test_y)
     pred_y = np.where(prob_y>=0.5, 1, 0) == test_y

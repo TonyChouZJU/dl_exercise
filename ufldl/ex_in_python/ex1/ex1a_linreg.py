@@ -82,19 +82,15 @@ def optimizer(theta_init, X, y, iters=200):
 		theta_grad = gradient(theta, X_i, y_i)
 		theta = theta -  c * theta_grad.transpose()
                 loss_history.append(loss)
-                #logging.info("iter: {:8d}\n\t\t\tloss: {:6f}".format(i, loss))
-                #logging.info( '\t\t\tRMS error: {error}'.format( error=np.sqrt(np.mean( (linear_regression(theta, X_i, y_i) - y_i) ** 2))) )
 	return theta, loss_history
 
 def load_data(input_file='housing.data'):
 	np_data= np.zeros((0,14),np.float32)
-	#np_data= np.zeros((0,3),np.float32)
 	with open(input_file, 'rb') as f:
 		for line in f:
 			this_line = [float(p) for p in line.strip().split()]
 			np_data = np.vstack([np_data, np.array(this_line)])
 	
-	#np_data = np.hstack([np.ones((np_data.shape[0], 1)), np_data])
 	return np_data
 
 def split_data(dataset, train_ratio=0.8):
@@ -130,16 +126,18 @@ def show_results(test_y, y_preds, sv_name):
     plt.savefig(sv_name)
 
 def gradient_descend(train_x, train_y, test_x, test_y, theta_init, sv_name,  iters=200):
+    logging.info('==============================Using the gradient_descend by myself ')
     theta_final, J_history = optimizer(theta_init, train_x, train_y, iters)
     			
     pred_prices = linear_regression(theta_final, test_x, test_y)
 
     #show_J_history(J_history)
     show_results(test_y, pred_prices, sv_name)
-    rms_error(train_x, train_y, test_x, test_y, theta_final)
+    analysis_error(train_x, train_y, test_x, test_y, theta_final)
     return theta_final
     
 def scipy_optimize(train_x, train_y, test_x, test_y,  theta_init, sv_name, iters=200, _method='bfgs'):
+    logging.info('==============================Using minimize function in scipy kit')
     J_history = []
     
     t0 = time.time()
@@ -159,22 +157,24 @@ def scipy_optimize(train_x, train_y, test_x, test_y,  theta_init, sv_name, iters
     pred_prices = linear_regression(optimal_theta, test_x, test_y)
     #show_J_history(J_history)
     show_results(test_y, pred_prices, sv_name)
-    rms_error(train_x, train_y, test_x, test_y, optimal_theta)
+    analysis_error(train_x, train_y, test_x, test_y, optimal_theta)
     return optimal_theta
 
 #y = theta*X
 #theta = (XTX)-1*XT*y
 def normal_equation(train_x, train_y, test_x, test_y, sv_name):
+    logging.info('==============================Using a closed-form solution')
     xt_x = (train_x.T).dot(train_x)
     xt_x_inv = np.linalg.inv(xt_x)
     theta = xt_x_inv.dot(train_x.T).dot(train_y)
 
     pred_y = linear_regression(theta, test_x, test_y)
     show_results(test_y, pred_y, sv_name)
-    rms_error(train_x, train_y, test_x, test_y, theta)
+    analysis_error(train_x, train_y, test_x, test_y, theta)
     return theta
 
 def linear_regression_sklearn(train_x, train_y, test_x, test_y, theta_init,  sv_name):
+    logging.info('==============================Using sklearn LinearRegression, minimize the residual sum of squares')
     #as the data is not centered, we can use two method to get the intercept
     #a)fit_intercpt = True, we can have an extra paramaters intercept_, 
     #b)add 1 into the origin data, and set fit_intercept=False
@@ -186,26 +186,80 @@ def linear_regression_sklearn(train_x, train_y, test_x, test_y, theta_init,  sv_
     train_x = np.hstack([np.ones((train_x.shape[0], 1)), train_x])
     test_x = np.hstack([np.ones((test_x.shape[0], 1)), test_x])
 
-    #theta = reg.coef_
-
-    print reg.coef_, reg.coef_.shape
-    print reg.intercept_
+    logging.info('reg coef:{}, shape;{}, intercept_:{}'.format(reg.coef_, reg.coef_.shape, reg.intercept_))
 
     pred_y = linear_regression(theta, test_x, test_y)
     #pred_y = reg.predict(test_x)
     show_results(test_y, pred_y, sv_name)
-    rms_error(train_x, train_y, test_x, test_y, theta)
+    analysis_error(train_x, train_y, test_x, test_y, theta)
     return theta
 
-def rms_error(train_x, train_y, test_x, test_y, optimal_theta):
+#Ridge regression: linear least squares with l2 normalization
+def ridge_regression(theta,X,y):
+    pass
+
+def ridge_regression_sklearn(train_x, train_y, test_x, test_y, theta_init,  sv_name):
+    logging.info('==============================Using ridge regression which address the problem of ordinary least square by imporsing a penalty on the size of coeffienct')
+    reg = linear_model.Ridge(alpha=1.0, fit_intercept=True)
+    reg.fit(train_x, train_y)
+
+    theta = np.hstack([reg.intercept_, reg.coef_])
+    train_x = np.hstack([np.ones((train_x.shape[0], 1)), train_x])
+    test_x = np.hstack([np.ones((test_x.shape[0], 1)), test_x])
+
+    logging.info('reg coef:{}, shape;{}, intercept_:{}'.format(reg.coef_, reg.coef_.shape, reg.intercept_))
+
+    pred_y = linear_regression(theta, test_x, test_y)
+    #pred_y = reg.predict(test_x)
+    show_results(test_y, pred_y, sv_name)
+    analysis_error(train_x, train_y, test_x, test_y, theta)
+    return theta
+
+def ridge_regression_cv_sklearn(train_x, train_y, test_x, test_y, theta_init,  sv_name):
+    logging.info('==============================Using ridge regression with built-in cross-validation of the alpha paramters')
+    reg = linear_model.RidgeCV(alphas=[0.1, 1.0, 10], fit_intercept=True)
+    reg.fit(train_x, train_y)
+
+    theta = np.hstack([reg.intercept_, reg.coef_])
+    train_x = np.hstack([np.ones((train_x.shape[0], 1)), train_x])
+    test_x = np.hstack([np.ones((test_x.shape[0], 1)), test_x])
+
+    logging.info('reg coef:{}, shape;{}, intercept_:{}'.format(reg.coef_, reg.coef_.shape, reg.intercept_))
+    logging.info('reg alpha:{}'.format(reg.alpha_))
+
+    pred_y = linear_regression(theta, test_x, test_y)
+    #pred_y = reg.predict(test_x)
+    show_results(test_y, pred_y, sv_name)
+    analysis_error(train_x, train_y, test_x, test_y, theta)
+    return theta
+
+
+def analysis_error(train_x, train_y, test_x, test_y, optimal_theta):
 
     ## look at the root mean squared error
     for df, (X, y) in (('train', (train_x, train_y)),('test', (test_x, test_y))):
         actual_prices = y
         predicted_prices = X.dot(optimal_theta)
-        logging.info('RMS {dataset} error: {error}'.format(dataset=df,
-                                                    error=np.sqrt(np.mean((predicted_prices - actual_prices) ** 2))         )
-        )
+        mean_squared_error = np.mean((predicted_prices - actual_prices) ** 2)
+        logging.info('Mean squared error {dataset} error:\t\t\t\t\t {error:>8}'.format(dataset=df,
+                                                    error=mean_squared_error    ))
+        root_mean_squared_error = np.sqrt(mean_squared_error) 
+        logging.info('Root mean squared error {dataset} error:\t\t\t\t\t {error:>8}'.format(dataset=df,
+                                                    error=root_mean_squared_error    ))
+        #residual sum of squares 
+        RSS = np.sum( (predicted_prices - actual_prices) ** 2)
+        #Eplained sum of squares
+        ESS = np.sum( (predicted_prices - np.mean(actual_prices)) ** 2)
+        #Total sum of squares, equivalent to np.var() * len()
+        #SST = np.var(actual_prices) * len(actual_prices)
+        #SST = RSS + ESS
+        SST = np.sum( (actual_prices - np.mean(actual_prices)) **2)
+        #Explained variance score: 1 is perfect prediction
+        score = 1. - RSS / SST 
+        logging.info('Coefficient of determination {dataset} score:\t\t\t\t {score:>8}'.format(dataset=df,
+                                                    score=score    ))
+        
+
     logging.info('Train Loss :{}'.format(cost_function(optimal_theta, train_x, train_y)))
 
 if __name__ == '__main__':
@@ -222,12 +276,12 @@ if __name__ == '__main__':
     train_x = standlizer.transform(orig_train_x)
     train_x = np.hstack([np.ones((train_x.shape[0], 1)), train_x])
 
-    orig_train_x = np.hstack([np.ones((orig_train_x.shape[0], 1)), orig_train_x])
+    #orig_train_x = np.hstack([np.ones((orig_train_x.shape[0], 1)), orig_train_x])
     
     test_x = standlizer.transform(orig_test_x)
     test_x = np.hstack([np.ones((test_x.shape[0], 1)), test_x])
 
-    orig_test_x = np.hstack([np.ones((orig_test_x.shape[0], 1)), orig_test_x])
+    #orig_test_x = np.hstack([np.ones((orig_test_x.shape[0], 1)), orig_test_x])
     
     theta_init = np.random.rand(train_x.shape[1])
 
@@ -235,7 +289,7 @@ if __name__ == '__main__':
     #hand write gradient descend
     #optimal_theta_1 = gradient_descend(train_x, train_y, test_x, test_y, theta_init, sv_name='./results/gd_max_normalized.png', iters=1000)
     #optimal_theta_2 = scipy_optimize(train_x, train_y, test_x, test_y, theta_init, sv_name='./results/bfgs_max_normalized.png',iters=200)
-    optimal_theta_3 = normal_equation(train_x, train_y, test_x, test_y, sv_name='./results/normequ_stand_normalized.png')
+    #optimal_theta_3 = normal_equation(train_x, train_y, test_x, test_y, sv_name='./results/normequ_stand_normalized.png')
 
     #optimal_theta_4 = gradient_descend(orig_train_x, train_y, orig_test_x, test_y, theta_init, sv_name='./results/gt_vs_pred_4.png', iters=200)
     #optimal_theta_5 = scipy_optimize(orig_train_x, train_y, orig_test_x, test_y, theta_init, sv_name='./results/gt_vs_pred_5.png',iters=200)
@@ -245,5 +299,7 @@ if __name__ == '__main__':
 
     #optimal_theta_8 = linear_regression_sklearn(orig_train_x, train_y, orig_test_x, test_y, theta_init, sv_name='./results/sklearn_linear_gt_vs_pred_8.png')
 
-    #optimal_theta_9 = linear_regression_sklearn(train_x, train_y, test_x, test_y, theta_init, sv_name='./results/sklearn_linear_normlized_gt_vs_pred_9.png')
+    optimal_theta_9 = linear_regression_sklearn(orig_train_x, train_y, orig_test_x, test_y, theta_init, sv_name='./results/sk_linear_regression_stand_normlized.png')
+    optimal_theta_9 = ridge_regression_sklearn(orig_train_x, train_y, orig_test_x, test_y, theta_init, sv_name='./results/sk_ridge_regression_stand_normlized.png')
+    optimal_theta_9 = ridge_regression_cv_sklearn(orig_train_x, train_y, orig_test_x, test_y, theta_init, sv_name='./results/sk_ridge_regression_cv_stand_normlized.png')
     
