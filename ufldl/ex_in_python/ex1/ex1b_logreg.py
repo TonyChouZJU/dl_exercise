@@ -38,6 +38,46 @@ def cost_function(theta, X, y):
 
     return Hy
 
+def newton(theta, X, y):
+    y_pred = logistic_regression(theta, X, y)
+    y_pred = y_pred.reshape(1, -1)
+    beta = (y_pred.T).dot(1-y_pred)
+    h = (X.T).dot(beta).dot(X)
+    return np.diag(h)
+
+def newton_optimizer(theta_init, X, y, iters=200, converge_change=-1e-60):
+        loss_history = []
+	theta = theta_init
+        n_samples = len(X)
+        loss = cost_function(theta_init, X, y)
+        change_loss = 1.
+        batch_size = 20
+
+	for i in range(iters):
+                old_loss = loss 
+                sample_idx = np.arange(n_samples)
+                np.random.shuffle(sample_idx)
+
+                #rand_batch = np.random.randint(n_samples-2)
+                rand_batch_idx =  sample_idx[:batch_size]
+                #X_i = X[rand_batch_idx, :].reshape((-1,theta.shape[0]))
+                #y_i = y[rand_batch_idx]
+		X_i = X
+                y_i = y
+		n_grad = newton(theta, X_i, y_i)
+		theta = theta - n_grad
+		loss = cost_function(theta, X_i, y_i)
+                loss_history.append(loss)
+                logging.info("iter: {:8d}\n\t\t\tloss: {:6f}".format(i, loss))
+                logging.info( '\t\t\tRMS error: {error}'.format( error=np.sqrt(np.mean( (logistic_regression(theta, X_i, y_i) - y_i) ** 2))) )
+
+                change_loss = old_loss - loss
+                #if change_loss <= converge_change:
+                #    break
+	return theta, loss_history
+    
+
+
 #It is the same as linear regression except for h_theta(x) = sigmoid(x)
 def gradient(theta, X, y):
     y_preds = logistic_regression(theta, X, y)
@@ -121,6 +161,14 @@ def logistic_regression_sklearn(train_x, train_y, test_x, test_y, theta_init,  s
     #analysis_error(train_x, train_y, test_x, test_y, theta)
     return theta
     
+def newton_descend(train_x, train_y, test_x, test_y, theta_init, sv_name,  iters=200, converge_change=-1e-60):
+    theta_final, J_history = newton_optimizer(theta_init, train_x, train_y, iters, converge_change)
+    			
+    pred_prices = logistic_regression(theta_final, test_x, test_y)
+
+    show_J_history(J_history)
+    show_results(test_y, pred_prices, sv_name)
+    return theta_final
      
 
 def gradient_descend(train_x, train_y, test_x, test_y, theta_init, sv_name,  iters=200, converge_change=-1e-60):
@@ -128,8 +176,8 @@ def gradient_descend(train_x, train_y, test_x, test_y, theta_init, sv_name,  ite
     			
     pred_prices = logistic_regression(theta_final, test_x, test_y)
 
-    show_J_history(J_history)
-    show_results(test_y, pred_prices, sv_name)
+    #show_J_history(J_history)
+    #show_results(test_y, pred_prices, sv_name)
     return theta_final
 
 def split_digits_data(dgts, train_ratio=0.8):
@@ -164,8 +212,9 @@ if __name__=='__main__':
     #theta_init = np.random.rand(orig_train_x.shape[1])
     theta_init = np.zeros(orig_train_x.shape[1]) + 0.0001
     print orig_test_x, test_y
-    #optimal_theta_1 = gradient_descend(orig_train_x, train_y, orig_test_x, test_y, theta_init, sv_name='./results/gd_logistic.png', iters=50)
-    optimal_theta_1 = logistic_regression_sklearn(orig_train_x, train_y, orig_test_x, test_y, theta_init, sv_name='./results/sk_logistic_regression_l2', iters=50)
+    optimal_theta_1 = gradient_descend(orig_train_x, train_y, orig_test_x, test_y, theta_init, sv_name='./results/gd_logistic.png', iters=50)
+    optimal_theta_2 = newton_descend(orig_train_x, train_y, orig_test_x, test_y, theta_init, sv_name='./results/newtond_logistic.png', iters=1000)
+    #optimal_theta_1 = logistic_regression_sklearn(orig_train_x, train_y, orig_test_x, test_y, theta_init, sv_name='./results/sk_logistic_regression_l2', iters=50)
 
     prob_y = logistic_regression(optimal_theta_1, orig_test_x, test_y)
     pred_y = np.where(prob_y>=0.5, 1, 0) == test_y
