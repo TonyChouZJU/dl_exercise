@@ -51,6 +51,13 @@ def cost_function(theta, X, y):
 	#loss = np.sum(np.square(y_preds-y))/2
 	return loss
 
+def newton(theta, X, y):
+	#hession matrix
+	h = (X.T).dot(X)
+	g = gradient(theta, X, y)
+	d = g/np.diag(h)
+	return d
+
 def gradient(theta, X, y):
 	y_preds = linear_regression(theta, X, y)
 	errors = y_preds-y
@@ -58,6 +65,21 @@ def gradient(theta, X, y):
 	theta_grad = (errors.T).dot(X)/ y.shape[0]
 	return theta_grad
 
+def newton_optimizer(theta_init, X, y, iters=10):
+        loss_history = []
+	theta = theta_init
+	for i in range(iters):
+
+		#X_i = X[i%X.shape[0], :].reshape((-1,theta.shape[0]))
+		X_i = X
+		#y_i = y[i%X.shape[0]].reshape((-1,1))
+                #y_i = y[i%X.shape[0]].reshape(1)
+                y_i = y
+		loss = cost_function(theta, X_i, y_i)
+		n_grad = newton(theta, X_i, y_i)
+		theta = theta - n_grad  
+                loss_history.append(loss)
+	return theta, loss_history
 
 def optimizer(theta_init, X, y, iters=200):
         loss_history = []
@@ -122,8 +144,19 @@ def show_results(test_y, y_preds, sv_name):
     plt.title("Predicted vs. Actual House Price")
     plt.ylabel('Price ($1000s)')
     plt.xlabel('House #')
-#    plt.show()
+    plt.show()
     plt.savefig(sv_name)
+
+def newton_descend(train_x, train_y, test_x, test_y, theta_init, sv_name,  iters=10):
+    logging.info('==============================Using the newton method by myself ')
+    theta_final, J_history = newton_optimizer(theta_init, train_x, train_y, iters)
+    			
+    pred_prices = linear_regression(theta_final, test_x, test_y)
+
+    show_J_history(J_history)
+    show_results(test_y, pred_prices, sv_name)
+    analysis_error(train_x, train_y, test_x, test_y, theta_final)
+    return theta_final
 
 def gradient_descend(train_x, train_y, test_x, test_y, theta_init, sv_name,  iters=200):
     logging.info('==============================Using the gradient_descend by myself ')
@@ -287,7 +320,8 @@ if __name__ == '__main__':
 
     
     #hand write gradient descend
-    #optimal_theta_1 = gradient_descend(train_x, train_y, test_x, test_y, theta_init, sv_name='./results/gd_max_normalized.png', iters=1000)
+    optimal_theta_1 = gradient_descend(train_x, train_y, test_x, test_y, theta_init, sv_name='./results/gd_stand_normalized.png', iters=1000)
+    optimal_theta_1 = newton_descend(train_x, train_y, test_x, test_y, theta_init, sv_name='./results/newton_stand_normalized.png', iters=2000)
     #optimal_theta_2 = scipy_optimize(train_x, train_y, test_x, test_y, theta_init, sv_name='./results/bfgs_max_normalized.png',iters=200)
     #optimal_theta_3 = normal_equation(train_x, train_y, test_x, test_y, sv_name='./results/normequ_stand_normalized.png')
 
@@ -299,7 +333,7 @@ if __name__ == '__main__':
 
     #optimal_theta_8 = linear_regression_sklearn(orig_train_x, train_y, orig_test_x, test_y, theta_init, sv_name='./results/sklearn_linear_gt_vs_pred_8.png')
 
-    optimal_theta_9 = linear_regression_sklearn(orig_train_x, train_y, orig_test_x, test_y, theta_init, sv_name='./results/sk_linear_regression_stand_normlized.png')
-    optimal_theta_9 = ridge_regression_sklearn(orig_train_x, train_y, orig_test_x, test_y, theta_init, sv_name='./results/sk_ridge_regression_stand_normlized.png')
-    optimal_theta_9 = ridge_regression_cv_sklearn(orig_train_x, train_y, orig_test_x, test_y, theta_init, sv_name='./results/sk_ridge_regression_cv_stand_normlized.png')
+    #optimal_theta_9 = linear_regression_sklearn(orig_train_x, train_y, orig_test_x, test_y, theta_init, sv_name='./results/sk_linear_regression_stand_normlized.png')
+    #optimal_theta_9 = ridge_regression_sklearn(orig_train_x, train_y, orig_test_x, test_y, theta_init, sv_name='./results/sk_ridge_regression_stand_normlized.png')
+    #optimal_theta_9 = ridge_regression_cv_sklearn(orig_train_x, train_y, orig_test_x, test_y, theta_init, sv_name='./results/sk_ridge_regression_cv_stand_normlized.png')
     
