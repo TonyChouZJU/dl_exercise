@@ -144,7 +144,7 @@ def show_results(test_y, y_preds, sv_name):
     plt.title("Predicted vs. Actual House Price")
     plt.ylabel('Price ($1000s)')
     plt.xlabel('House #')
-    plt.show()
+    #plt.show()
     plt.savefig(sv_name)
 
 def newton_descend(train_x, train_y, test_x, test_y, theta_init, sv_name,  iters=10):
@@ -153,7 +153,7 @@ def newton_descend(train_x, train_y, test_x, test_y, theta_init, sv_name,  iters
     			
     pred_prices = linear_regression(theta_final, test_x, test_y)
 
-    show_J_history(J_history)
+    #show_J_history(J_history)
     show_results(test_y, pred_prices, sv_name)
     analysis_error(train_x, train_y, test_x, test_y, theta_final)
     return theta_final
@@ -288,9 +288,12 @@ def analysis_error(train_x, train_y, test_x, test_y, optimal_theta):
         #SST = RSS + ESS
         SST = np.sum( (actual_prices - np.mean(actual_prices)) **2)
         #Explained variance score: 1 is perfect prediction
-        score = 1. - RSS / SST 
-        logging.info('Coefficient of determination {dataset} score:\t\t\t\t {score:>8}'.format(dataset=df,
+	try:
+        	score = 1. - RSS / SST 
+        	logging.info('Coefficient of determination {dataset} score:\t\t\t\t {score:>8}'.format(dataset=df,
                                                     score=score    ))
+	except Exception as e:
+		logging.info('Exception e: {}'.format(e))
         
 
     logging.info('Train Loss :{}'.format(cost_function(optimal_theta, train_x, train_y)))
@@ -299,7 +302,8 @@ if __name__ == '__main__':
     #dataset = load_data(input_file='housing.data')
     #np.random.shuffle(dataset) 
     #np.save('./dataset.npy',dataset)
-    dataset = np.load('./dataset.npy')
+    #dataset = np.load('./dataset.npy')
+    dataset = np.load('./ex4_dataset.npy')
     
     
     orig_train_x, train_y, orig_test_x, test_y = split_data(dataset)
@@ -318,10 +322,12 @@ if __name__ == '__main__':
     
     theta_init = np.random.rand(train_x.shape[1])
 
+    print 'train_x:', train_x, 'train_y:',train_y
+
     
     #hand write gradient descend
-    optimal_theta_1 = gradient_descend(train_x, train_y, test_x, test_y, theta_init, sv_name='./results/gd_stand_normalized.png', iters=1000)
-    optimal_theta_1 = newton_descend(train_x, train_y, test_x, test_y, theta_init, sv_name='./results/newton_stand_normalized.png', iters=2000)
+    optimal_theta_1 = gradient_descend(train_x, train_y, test_x, test_y, theta_init, sv_name='./results/ex4_gd_stand_normalized.png', iters=1000)
+    optimal_theta_1 = newton_descend(train_x, train_y, test_x, test_y, theta_init, sv_name='./results/ex4_newton_stand_normalized.png', iters=2000)
     #optimal_theta_2 = scipy_optimize(train_x, train_y, test_x, test_y, theta_init, sv_name='./results/bfgs_max_normalized.png',iters=200)
     #optimal_theta_3 = normal_equation(train_x, train_y, test_x, test_y, sv_name='./results/normequ_stand_normalized.png')
 
